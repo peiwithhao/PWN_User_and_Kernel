@@ -53,19 +53,19 @@ poweroff -d 0  -f
 
 
 进入漏洞模块的分析
-![]([img]http://imgsrc.baidu.com/super/pic/item/42166d224f4a20a438bb7e05d5529822730ed04f.jpg[/img])
+![](http://imgsrc.baidu.com/super/pic/item/42166d224f4a20a438bb7e05d5529822730ed04f.jpg)
     
 这里可以看到有canary和NX，所以咱们通过ROP的话需要进行canary泄露。
 接下来咱们分析相关函数init_moddule
-![]([img]http://imgsrc.baidu.com/super/pic/item/a9d3fd1f4134970ac9d052edd0cad1c8a6865d55.jpg[/img])
+![](http://imgsrc.baidu.com/super/pic/item/a9d3fd1f4134970ac9d052edd0cad1c8a6865d55.jpg)
    
 可以看到模块加载的初期会创建一个名为`core`的进程，在虚拟机中在/proc目录下
 在看看比较重要的ioctl函数
-![]([img]http://imgsrc.baidu.com/super/pic/item/77c6a7efce1b9d162f5ed8a3b6deb48f8d546453.jpg[/img])
+![](http://imgsrc.baidu.com/super/pic/item/77c6a7efce1b9d162f5ed8a3b6deb48f8d546453.jpg)
    
 可以看出有三个模式选择，分别点入相关函数看
    
-![]([img]http://imgsrc.baidu.com/super/pic/item/77094b36acaf2edd18640b2bc81001e93801935f.jpg[/img])
+![](http://imgsrc.baidu.com/super/pic/item/77094b36acaf2edd18640b2bc81001e93801935f.jpg)
 ---
 
 这里的read函数就是向用户指定的地址从off偏移地址写入64个字节.
@@ -73,28 +73,28 @@ poweroff -d 0  -f
    
 ---
    
-![]([img]http://imgsrc.baidu.com/super/pic/item/a5c27d1ed21b0ef40362da9c98c451da80cb3e6d.jpg[/img])
+![](http://imgsrc.baidu.com/super/pic/item/a5c27d1ed21b0ef40362da9c98c451da80cb3e6d.jpg)
    
 可以知道相差对于v5相差0x40，所以咱们设置的off也是0x40
    
 我们还可以来看看file_operations,(不秦楚的大伙可以看看我的上一篇环境搭建的文章)，可以看到他只实现了write，ioctl，release的系统调用：
    
-![]([img]http://imgsrc.baidu.com/super/pic/item/50da81cb39dbb6fd4da7a7e44c24ab18962b3777.jpg[/img])
+![](http://imgsrc.baidu.com/super/pic/item/50da81cb39dbb6fd4da7a7e44c24ab18962b3777.jpg)
    
 ---
    
-![]([img]http://imgsrc.baidu.com/super/pic/item/6d81800a19d8bc3e40f74408c78ba61ea9d34571.jpg[/img])
+![](http://imgsrc.baidu.com/super/pic/item/6d81800a19d8bc3e40f74408c78ba61ea9d34571.jpg)
     
 ---
     
 
-![]([img]http://imgsrc.baidu.com/super/pic/item/7aec54e736d12f2e7ffceca20ac2d56284356873.jpg[/img])
+![](http://imgsrc.baidu.com/super/pic/item/7aec54e736d12f2e7ffceca20ac2d56284356873.jpg)
 
 我们再来看看其他函数，先看core_write
-![]([img]http://imgsrc.baidu.com/super/pic/item/8694a4c27d1ed21b193c6c27e86eddc450da3f7e.jpg[/img])
+![](http://imgsrc.baidu.com/super/pic/item/8694a4c27d1ed21b193c6c27e86eddc450da3f7e.jpg)
 这里可以知道他总共可以向name这个地址写入0x800个字节，心动
 我们再来看看ioctl中第三个选项的core_copy_func
-![]([img]http://imgsrc.baidu.com/super/pic/item/810a19d8bc3eb135c137f579e31ea8d3fc1f4404.jpg[/img])
+![](http://imgsrc.baidu.com/super/pic/item/810a19d8bc3eb135c137f579e31ea8d3fc1f4404.jpg)
 发现他可以从name上面拷贝数据到达栈上，然后这个判断存在着整形溢出，这里如果咱传个负数就可以达成效果了。
 ## 1. Kernel ROP
 既然咱们可以在栈上做手脚，那么我们就可以利用ROP的方式了，首先找几个gadget，这里的gadget是需要在vmlinux中寻找，我的推荐是用
@@ -107,9 +107,9 @@ cat ropgadget | grep "pop rdi; ret"
 如图：
 对于上面所说的比较关键的两个函数`commit_creds`以及`prepare_kernel_cred`,我们在vmlinux中去寻找他所加载的的地址
 然后我们可以看看ropgadget文件
-![]([img]http://imgsrc.baidu.com/super/pic/item/aec379310a55b319d78ccdb706a98226cefc17fe.jpg[/img])
+![](http://imgsrc.baidu.com/super/pic/item/aec379310a55b319d78ccdb706a98226cefc17fe.jpg)
 从中咱们可以看到其中即我们所需要的gadget(实际上就是linux内核镜像所使用的汇编代码)，此时我们再通过linux自带的grep进行搜索，个人认为还是比较好用的，用`ropgadget`或者是`ropper`来说都可以，看各位师傅的喜好来.具体使用情况如下：
-![]([img]http://imgsrc.baidu.com/super/pic/item/b8389b504fc2d562427a9f2fa21190ef77c66c86.jpg[/img])
+![](http://imgsrc.baidu.com/super/pic/item/b8389b504fc2d562427a9f2fa21190ef77c66c86.jpg)
 以此手法获得两个主要函数的地址后，此刻若咱们在exp中获得这两个函数的实际地址，然后将两者相减即可得到KASLR的偏移地址。
 自此咱们继续搜索别的gadget，我们此刻需要的gadget共有如下几个：
 ```
@@ -190,7 +190,7 @@ void get_function_address(){
 由于咱们的内核是跑在qemu中,所以我们gdb需要用到远程调试的方法,但是如果直接连端口的话会出现没符号表不方便调试的,所以我们需要自行导入内核模块,也就是文件提供的`vmlinux`,之后由于咱们还需要core.ko的符号表,所以咱们也可以通过自行导入来获得可以,通过 `add-symbol-file core.ko textaddr` 加载 ,而这里的`textaddr`即为`core.ko`的`.tex`t段地址,我们可以通过修改`init`中为`root`权限进行设置.
 这里.text 段的地址可以通过 `/sys/modules/core/section/.text` 来查看，
 这里强烈建议大伙先关kaslr(通过在启动脚本修改,就是将kaslr改为nokaslr)再进行调试,效果图如下
-![]([img]http://imgsrc.baidu.com/super/pic/item/5882b2b7d0a20cf48316b11d33094b36adaf996a.jpg[/img])
+![](http://imgsrc.baidu.com/super/pic/item/5882b2b7d0a20cf48316b11d33094b36adaf996a.jpg)
 我们可以通过` -gdb tcp:port `或者 `-s `来开启调试端口，`start.sh` 中已经有了 -s，不必再自己设置。(对了如果-s ,他的功能等同于-gdb tcp:1234)
 在我们获得.text基地址后记得用脚本来开gdb,不然每次都要输入这么些个东西太麻烦了,脚本如下十分简单:
 ```
@@ -204,16 +204,16 @@ gdb -q \
 ```
 
 其中打断点可以先打在core_read,这里打在core_copy_func是我调到尾声修改的.这里还注意一个点,就是当采用pwndbg的时侯需要root权限才可以进行调试不然会出现以下错误
-![]([img]http://imgsrc.baidu.com/super/pic/item/77094b36acaf2edd1b05062bc81001e938019378.jpg[/img])
+![](http://imgsrc.baidu.com/super/pic/item/77094b36acaf2edd1b05062bc81001e938019378.jpg)
 最开始气死我了,人家peda都不要root,但是最开始不清楚为什么会错,我还以为是版本问题,但想到这是我最近刚配的一台机子又应该不是,其实最开始看到permission就该想到的,害.
 我们用root权限进行开调
-![]([img]http://imgsrc.baidu.com/super/pic/item/0824ab18972bd40717299c3f3e899e510eb30901.jpg[/img])
+![aa](http://imgsrc.baidu.com/super/pic/item/0824ab18972bd40717299c3f3e899e510eb30901.jpg)
 可以看到十分的成功,此刻我continue,还记得咱们下的断电码,b core_read,如果咱们调用它后咱们就会在这里停下来,此刻我们运行咱们的程序试试
-![]([img]http://imgsrc.baidu.com/super/pic/item/b7003af33a87e950aaf6bcae55385343faf2b40b.jpg[/img])
+![](http://imgsrc.baidu.com/super/pic/item/b7003af33a87e950aaf6bcae55385343faf2b40b.jpg)
 这样咱们就可以愉快的进行调试啦,至此gdb调试内核基本方法到此结束~~~
 ### 5. ROP链解析
 这里简单讲讲,直接给图
-![]([img]http://imgsrc.baidu.com/super/pic/item/7c1ed21b0ef41bd5b84aa63614da81cb38db3dd2.jpg[/img])
+![](http://imgsrc.baidu.com/super/pic/item/7c1ed21b0ef41bd5b84aa63614da81cb38db3dd2.jpg)
 相信大家理解起来不费力.
 
 ### 6. exp
