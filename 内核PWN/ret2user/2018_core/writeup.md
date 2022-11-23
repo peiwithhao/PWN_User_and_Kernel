@@ -1,6 +1,6 @@
 # Items
 由于题目分析与ROP中的为同一题，所以思路我这儿不细讲了，这里给出思路地址
-> [core利用ROP](../../ROP_kernel/2018_core/README.md)
+> [core利用ROP](../../ROP_kernel/2018_core/writeup.md)
    
 ret2usr 攻击利用了 用户空间的进程不能访问内核空间，但内核空间能访问用户空间 这个特性来定向内核代码或数据流指向用户控件，以 ring 0 特权执行用户空间代码完成提权等操作。
 ## 0x00 ret2user(no SMEP/SMAP)
