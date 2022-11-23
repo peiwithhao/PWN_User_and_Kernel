@@ -1,9 +1,9 @@
 ## 例题：2016-360春秋杯-srop
 首先还是进行check检查
-![](http://imgsrc.baidu.com/super/pic/item/f3d3572c11dfa9ecceeec3d627d0f703908fc12b.jpg)
+![a](http://imgsrc.baidu.com/super/pic/item/f3d3572c11dfa9ecceeec3d627d0f703908fc12b.jpg)
 嗯十分友好，接下来看看程序主体部分。
 由于这个程序十分简单，我们直接用objdump进行观看
-![](http://imgsrc.baidu.com/super/pic/item/1f178a82b9014a90e800d27cec773912b31bee31.jpg)
+![a](http://imgsrc.baidu.com/super/pic/item/1f178a82b9014a90e800d27cec773912b31bee31.jpg)
 是的没看错，就这么简单，大致讲解下代码含义：
         1. xor    %rax,%rax       //这里是将rax进行异或，咱们相同值异或结果为0，所以这里的含义即为将rax清0
         2. mov  %0x400,%edx   //移入0x400到edx中
@@ -19,7 +19,7 @@
 这里是第一次执行syscall时的栈结构
 ![](http://imgsrc.baidu.com/super/pic/item/8694a4c27d1ed21be3abba24e86eddc450da3f95.jpg)
 按照程序原来的意思执行一次read函数的系统调用后，此时我们任意输入一个值，我这里输入abcde
-![]([img]http://imgsrc.baidu.com/super/pic/item/c8177f3e6709c93da8aa9a36da3df8dcd0005493.jpg)
+![](http://imgsrc.baidu.com/super/pic/item/c8177f3e6709c93da8aa9a36da3df8dcd0005493.jpg)
 可以看到这里咱们的栈是任由咱们写的，然后下一条指令又是ret，所以我们会在此时跳转到我们写的这个值这里，在这儿也就是` call 0xa6564636261`,所以咱们这里有那么点想法，如果咱们要修改rax的值，那肯定要绕过第一条xor指令，所以咱们可以在栈上首先构造三个0x4000b0，至于为什么是三个，我之后会进行讲解。
 ### 第一步
 在第一次read系统调用后，咱们输入三个0x4000b0（也即是xor的地址，由于没开地址随机，所以此值固定），此时栈结构如下
