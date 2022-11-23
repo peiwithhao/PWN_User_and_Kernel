@@ -7,7 +7,4 @@
 + [内核ROP](./ROP_kernel)
 + [ret2user](./ret2user)
 ---
-
-|Name|Value|
-|--|--|
-|Fang|404|
+(待更新~~)
