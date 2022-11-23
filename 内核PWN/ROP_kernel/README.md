@@ -1,4 +1,4 @@
 # Items
 
-Just like the user ROP,emmmm.almostly
+类似于用户态的ROP我这儿就不细讲惹
 [2018 core](./2018_core)
